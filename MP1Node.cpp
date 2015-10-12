@@ -248,6 +248,26 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 		}
 }
 
+Address AddressFromMLE(MemberListEntry* mle) {
+		Address a;
+		memcpy(a.addr, &mle->id, sizeof(int));
+		memcpy(&a.addr[4], &mle->port, sizeof(short));
+		return a;
+}
+
+void MP1Node::onJoin(Address *addr, void* data, size_t size) {
+		MessageHdr* msg;
+		size_t msgsize = sizeof(MessageHdr) + sizeof(memberNode->addr) + sizeof(long) +1;
+		msg = (MessageHdr *) malloc(msgsize) * sizeof(char));
+		msg->msgType = JOINREP;
+		memcpy((char *)(msg+1), &memberNode->addr, sizeof(memberNode->addr));
+		memcpy((char *)(msg+1) + sizeof(memberNode->addr) + 1, &memberNode->heartbeat, sizeof(long));
+		stringstream ss;
+		ss<< "Sending JOINREP to" << addr->getAddress() << "heartbeat" <<memberNode-> hearthbeat;
+		emulNet->ENsend(&memberNode->addr, addr, (char *)msg, msgsize);
+		log->LOG(&memberNode->addr, ss.str().c_str());
+		free(msg);
+}
 /**
  * FUNCTION NAME: nodeLoopOps
  *
