@@ -268,6 +268,18 @@ void MP1Node::onJoin(Address *addr, void* data, size_t size) {
 		log->LOG(&memberNode->addr, ss.str().c_str());
 		free(msg);
 }
+void MP1Node::onHeartbeat(Address* addr, void* data, size_t size) {
+		std::stringstream msg;
+		assert(size >= sizeof(long));
+		long *heartbeat = (long*)data;
+
+		msg << "Hearbeat from" << addr->getAddress() << " ";
+		msg << *heartbeat;
+		log->LOG(&memberNode->addr, msg.str().c_str());
+		msg.str("");
+		
+		
+}
 /**
  * FUNCTION NAME: nodeLoopOps
  *
