@@ -256,10 +256,12 @@ Address AddressFromMLE(MemberListEntry* mle) {
 }
 
 void MP1Node::onJoin(Address *addr, void* data, size_t size) {
+		//construct a message
 		MessageHdr* msg;
 		size_t msgsize = sizeof(MessageHdr) + sizeof(memberNode->addr) + sizeof(long) +1;
 		msg = (MessageHdr *) malloc(msgsize) * sizeof(char));
 		msg->msgType = JOINREP;
+		//get new node's info
 		memcpy((char *)(msg+1), &memberNode->addr, sizeof(memberNode->addr));
 		memcpy((char *)(msg+1) + sizeof(memberNode->addr) + 1, &memberNode->heartbeat, sizeof(long));
 		stringstream ss;
@@ -273,12 +275,32 @@ void MP1Node::onHeartbeat(Address* addr, void* data, size_t size) {
 		assert(size >= sizeof(long));
 		long *heartbeat = (long*)data;
 
-		msg << "Hearbeat from" << addr->getAddress() << " ";
-		msg << *heartbeat;
-		log->LOG(&memberNode->addr, msg.str().c_str());
-		msg.str("");
-		
-		
+		bool newData = UpdateMemberList(addr, *heartbeat);
+		if (newData) {
+				LogMemberList();
+				SendHBSomewhere(addr, *heartbeat);
+		} else {
+				//log->LOG(&memberNode->addr, "Heartbeat up-to-date.");
+		}
+}
+bool MP1Node::UpdateMemberList(Address *addr, long heartbeat)  {
+		vector<MemberListEntry>::iterator it;
+		for (it = memberNode->memberList.begin(); it != memberNode->memberList.end(); it++) {
+			if ((AddressFromMLE(&(*it)) == *addr) == 0) {
+				if (heartbeat > it->getheartbeat()) {
+					it->setheartbeat(heartbeat);
+					it->settimestamp(par->getcurrtime());
+					return true;
+				} else {
+					return false;
+					}
+				}
+		}
+		MemberListEntry mle(*((int*)addr->addr), *((short*)&(addr->addr[4])),
+		heartbeat, par->getcurrtime());
+		memberNode->memberList.push_back(mle);
+		log->logNodeAdd(&memberNode->addr, addr);
+		return true;
 }
 /**
  * FUNCTION NAME: nodeLoopOps
@@ -288,11 +310,29 @@ void MP1Node::onHeartbeat(Address* addr, void* data, size_t size) {
  * 				Propagate your membership list
  */
 void MP1Node::nodeLoopOps() {
+	int timeout = 5;
+	stringstream ss;
+	for (vector<MemberListEntry>::iterator it = memberNode->memberList.begin(); it != memberNode->memberList.end(); it++) {
 
-	/*
-	 * Your code goes here
-	 */
+		if (par->getcurrtime() - it->timestamp > timeout) {
+			Address addr = AddressFromMLE(&(*it));
+			ss << "Timing out " << addr.getAddress();
+			log->LOG(&memberNode->addr, ss.str().c_str());
+			ss.str("");
 
+			vector<MemberListEntry>::iterator next_it = it;
+			vector<MemberListEntry>::iterator next_next_it = it+1;
+			for (next_it = it; next_next_it != memberNode->memberList.end(); next_it++, next_next_it++) {
+				*next_it = *next_next_it;
+				}
+				memberNode->memberList.resize(memberNode->memberList.size()-1);
+				it -= 1;
+				LogMemberList();
+				log->logNodeRemove(&memberNode->addr, &addr);
+			}
+	}
+	UpdateMemberList(&memberNode->addr, ++memberNode->heartbeat);
+	SendHBSomewhere(&memberNode->addr, memberNode->heartbeat);
     return;
 }
 
@@ -327,7 +367,21 @@ Address MP1Node::getJoinAddress() {
  */
 void MP1Node::initMemberListTable(Member *memberNode) {
 	memberNode->memberList.clear();
+	MemberListEntry mle = MemberListEntry(id, port);
+	mle.settimestamp(par->getcurrtime());
+	mle.setheartbeat(memberNode->heartbeat);
+	memberNode->memberList.push_back(mle);
 }
+
+void MP1Node::LogMemberList() {
+	stringstream msg;
+	msg << "[";
+	for (vector<MemberListEntry>::iterator it = memberNode->memberList.begin(); it != memberNode->memberList.end(); it++) {
+		msg << it->getid() << ": " << it->getheartbeat() << "(" << it->gettimestamp() << "), ";
+	}
+	msg << "]";
+}
+
 
 /**
  * FUNCTION NAME: printAddress
