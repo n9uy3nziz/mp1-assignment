@@ -160,9 +160,7 @@ int MP1Node::introduceSelfToGroup(Address *joinaddr) {
  * DESCRIPTION: Wind up this node and clean up state
  */
 int MP1Node::finishUpThisNode(){
-   /*
-    * Your code goes here
-    */
+  	return 0;
 }
 
 /**
@@ -513,8 +511,8 @@ Address MP1Node::getJoinAddress() {
     Address joinaddr;
 
     memset(&joinaddr, 0, sizeof(Address));
-    *(int *)(&joinaddr.addr) = 1;
-    *(short *)(&joinaddr.addr[4]) = 0;
+    *(int *)(&joinaddr.addr) = 1; //gan IP
+    *(short *)(&joinaddr.addr[4]) = 0; //gan port
 
     return joinaddr;
 }
@@ -533,14 +531,14 @@ void MP1Node::initMemberListTable(Member *memberNode) { //tao table
     	memberNode->myPos = memberNode->memberList.begin();
 }
 
-void MP1Node::LogMemberList() {
+/*void MP1Node::LogMemberList() {
 	stringstream msg;
 	msg << "[";
 	for (vector<MemberListEntry>::iterator it = memberNode->memberList.begin(); it != memberNode->memberList.end(); it++) {
 		msg << it->getid() << ": " << it->getheartbeat() << "(" << it->gettimestamp() << "), ";
 	}
 	msg << "]";
-}
+}*/
 
 
 /**
