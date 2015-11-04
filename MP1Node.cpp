@@ -427,7 +427,7 @@ bool MP1Node::recvMemberList(const char * label, void *env, char *data, int size
     return true;
 }
 
-bool MP1Node::UpdateMember(int id, short port, long heartbeat)  {
+void MP1Node::updateMember(int id, short port, long heartbeat)  {
 		vector<MemberListEntry>::iterator it;
 		for (it = memberNode->memberList.begin(); it != memberNode->memberList.end(); it++) {
 			if (it->id == id && it->port ==port) { //kiem tra ip va port co trong table
